@@ -20,10 +20,17 @@
 #include <R.h>
 #include <Rinternals.h>
 
+/*
+ * Old compatibility code for R versions before generational garbage collection
+ * no longer used, these versions of R are no longer supported
+ */
+#if 0
 #if R_VERSION < R_Version( 1, 2, 0 )
 #define VECTOR_ELT(x,i) (VECTOR(x)[i])
 #define SET_VECTOR_ELT(x,i,v) (VECTOR(x)[i]=(v))
 #endif
+#endif
+
 
 #define SAMPLE_SCORE          0
 #define BROWN_NOISE           1
