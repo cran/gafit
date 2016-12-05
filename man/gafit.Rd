@@ -8,12 +8,13 @@
     other tuning parameters may be used to improve the convergence rate.
 }
 \usage{
-    gafit( target, start, thermal=0.1, maxiter=50, samples=10, step=1e-3 )
+    gafit( target, start, thermal=0.1, maxiter=50, samples=10, step=1e-3, tolerance=-Inf )
 }
 \arguments{
-    \item{target}{A function which returns a scalar real value. The algorithm will seek the
-                  lowest result which it can achieve. Usually this would be a sum of residuals
-                  squared and the algorithm will seek to bring this to zero (or as close as possible).}
+    \item{target}{An expression which returns a scalar real value. The algorithm will seek the
+                  lowest achievable value and save this in the "score" attribute (see below).
+                  Usually this would be a sum of residuals squared,
+                  so that the algorithm will seek to bring this as close as possible to zero.}
     \item{start}{A list of named values which will be used as the starting point for the curve
                  fitting. This list lets the algorithm know what it is allowed to adjust so any
                  parameters which the user wants to hold constant should be removed from this list and
@@ -42,6 +43,9 @@
                 the distance (in parameter space) from the start values to the correct solution.
                 If you have absolutely no idea what the distance might be then just put something
                 small in comparison to the expected parameter values.}
+    \item{tolerance}{If we find that the least squares value is less than this value
+                then return early because the answer is considered good enough.
+                NOTE: by default this is -Inf which will never trigger early exit.}
 }
 \details{
     Genetic algorithms are driven by random samples so the same results may not
@@ -61,6 +65,7 @@
     size for the numerical derivative when confronted by a singular gradient matrix? maybe it
     should).
 }
+
 \section{Known Bugs}{
     There is no way to guarantee to avoid a local optima nor is there a way to be sure that
     any stationary point that has been discovered is the global optimum value (other than an
@@ -68,15 +73,14 @@
     regression, having a good overall understanding of the behaviour of the functions with which
     you are working with is essential.
 
-    There is no termination condition other than maxiter. This algorithm makes no attempt
-    to prove that the answer that is produces is correct.
-
     Sometimes NaN values will be introduced into the parameters and then will go away again. 
     Although many warnings get generated, the NaN values do not seem to turn up in the final
     result so this should be considered merely an harmless annoyance.
 
     The thermal value is constant. Ideally it should gradually decrease itself but choosing
     the ideal ``cooling curve'' is too difficult, so it is left to the user to adjust this.
+    The return value of one gafit() run can be used as the start value for the next round,
+    making it easy to build a cascade and simulate stages of cooling.
 
     The step size auto-adjustment can break in some situations producing amazingly wrong answers.
 
@@ -90,27 +94,31 @@
     The returned value will be a list of the best parameter values that could be found.
     This list will be the same structure as the start list with new values inserted.
     The returned value will have an attribute called "score" which is the evaluation of
-    target with those paramters.
+    target with those paramters, and also an attribute called "count" which counts the
+    number of iterations completed (could be zero).
 }
 \author{
-    Telford Tendys \email{telford@progsoc.uts.edu.au}
+    Telford Tendys \email{gafit@lnx-bsp.net}
 }
 \seealso{
     \code{\link{expression}}, \code{\link{nls}}, \code{\link{.Random.seed}}
 }
 \examples{
-# Single parameter, all real numbers
+# Single parameter, all real numbers (not using least squares)
 e <- expression( cos( theta ) + sin( theta ))
-gafit( e, list( theta=3 ), step=0.1 )  # usually gets close to 3.926991
+guess.1 <- list( theta=3 )
+guess.2 <- gafit( e, guess.1, step=1e-3 )  # First attempt with thermal noise
+gafit( e, guess.2, step=1e-5, thermal=0 )  # usually gets close to 3.926991
 
-# Double parameter, complex numbers
+# Double parameter, complex numbers (least square curve fit)
 sumsq <- function( x ) { sum(( Mod( x )) ^ 2 )}
 freq <- exp( 1:15 )
 tpj <- 2 * pi * (0+1i)
 data <- 1 / ( 10 + tpj * freq * 1e-3 )
 e <- expression( sumsq( 1 / ( R + tpj * freq * C ) - data ))
-gafit( e, list( R=100, C=1e-6 ), step=0.1, maxiter=100 )
-
+guess.1 <- list( R=100, C=1e-6 );
+guess.2 <- gafit( e, guess.1, step=0.1, maxiter=100, tolerance=1e-2 )
+gafit( e, thermal=0, guess.2, step=1e-3, maxiter=200, tolerance=1e-5 )
 }
 \keyword{nonlinear}
 \keyword{regression}
